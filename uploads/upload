@@ -1,0 +1,20 @@
+<?php
+  $inipath = php_ini_loaded_file();
+  if ($inipath) {
+    echo 'Loaded php.ini: ' . $inipath;
+  } else {
+    echo 'A php.ini file is not loaded';
+  }
+  echo 'File name is' . $_FILES["userfile"]["tmp_name"];
+
+  if(isset($_POST["submit"]))
+  {
+    $upload_file = $_FILES["userfile"]["tmp_name"];
+    $target_file = "uploads/" . basename($upload_file);
+    if (move_uploaded_file($upload_file, $target_file)) {
+      echo "The file ". htmlspecialchars($upload_file). " has been uploaded.";
+    } else {
+      echo "The file ". htmlspecialchars($upload_file). " failed to upload";
+    }
+  }
+?>
