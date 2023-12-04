@@ -1,28 +1,17 @@
+use rocket::fs::FileServer;
 use rocket::fs::NamedFile;
 use rocket::fs::TempFile;
 use rocket::fs::relative;
+use rocket::fs::Options;
 
 use rocket::http::Status;
 
-use rocket::get;
 use rocket::post;
 
 use rocket::form::FromForm;
 use rocket::form::Form;
 
-use rocket::response::Redirect;
-
 use std::path::Path;
-
-#[get("/")]
-async fn root() -> Redirect {
-    Redirect::permanent("/index.html")
-}
-
-#[get("/index.html")]
-async fn index() -> Result<NamedFile, Status> {
-    NamedFile::open(relative!("statics/index.html")).await.ok().ok_or(Status::InternalServerError)
-}
 
 #[derive(FromForm)]
 struct Upload<'r> {
@@ -41,5 +30,7 @@ async fn upload(mut upload: Form<Upload<'_>>) -> Result<NamedFile, Status> {
 
 #[rocket::launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", rocket::routes![root, index, upload])
+    rocket::build()
+        .mount("/", FileServer::new(relative!("/statics"), Options::Index))
+        .mount("/", rocket::routes![upload])
 }
