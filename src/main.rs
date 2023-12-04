@@ -26,14 +26,16 @@ async fn index() -> Result<NamedFile, Status> {
 
 #[derive(FromForm)]
 struct Upload<'r> {
-    file: TempFile<'r>,
+    files: Vec<TempFile<'r>>,
 }
 
 #[post("/upload", data = "<upload>")]
 async fn upload(mut upload: Form<Upload<'_>>) -> Result<NamedFile, Status> {
-    let name = upload.file.name().ok_or(Status::BadRequest)?.to_owned();
-    let path = Path::new(relative!("uploads")).join(&name);
-    upload.file.move_copy_to(&path).await.ok().ok_or(Status::BadRequest)?;
+    for file in &mut upload.files {
+        let name = file.name().ok_or(Status::BadRequest)?.to_owned();
+        let path = Path::new(relative!("uploads")).join(&name);
+        file.move_copy_to(&path).await.ok().ok_or(Status::BadRequest)?;
+    }
     NamedFile::open(relative!("statics/upload.html")).await.ok().ok_or(Status::InternalServerError)
 }
 
