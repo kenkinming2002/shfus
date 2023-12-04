@@ -21,9 +21,24 @@ struct Upload<'r> {
 #[post("/upload", data = "<upload>")]
 async fn upload(mut upload: Form<Upload<'_>>) -> Result<NamedFile, Status> {
     for file in &mut upload.files {
-        let name = file.name().ok_or(Status::BadRequest)?.to_owned();
-        let path = Path::new(relative!("uploads")).join(&name);
+        // 1: Sanitize the filename and preserve the file extension
+        let name = file.raw_name().ok_or(Status::BadRequest)?;
+        let name = name.dangerous_unsafe_unsanitized_raw();
+        let name = name.as_str();
+        let name = name.chars().filter(|c| !std::path::is_separator(*c)).collect::<String>();
+        if name.is_empty() {
+            return Err(Status::BadRequest);
+        }
+
+        // 2: Compute the upload path
+        let path = Path::new(relative!("uploads"));
+        let path = path.join(name);
+
+        // 3: Persist the file
         file.move_copy_to(&path).await.ok().ok_or(Status::BadRequest)?;
+
+        // 4: Done
+        eprintln!("File uploaded to {path}", path = path.display());
     }
     NamedFile::open(relative!("statics/upload.html")).await.ok().ok_or(Status::InternalServerError)
 }
